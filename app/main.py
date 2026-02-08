@@ -13,6 +13,11 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 UPLOAD_DIR = "/tmp/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
