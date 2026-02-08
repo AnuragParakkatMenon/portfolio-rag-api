@@ -1,15 +1,43 @@
 import os
-from sentence_transformers import SentenceTransformer
 from pypdf import PdfReader
 from openai import OpenAI
 from app.vector_store import VectorStore
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.schema import Document
 
 # OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Embedding model
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
-embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+
+
+os.makedirs("/data", exist_ok=True)
+
+embeddings = OpenAIEmbeddings()
+
+def ingest_text(text: str):
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200
+    )
+
+    docs = splitter.create_documents([text])
+
+    vectorstore = FAISS.from_documents(docs, embeddings)
+    vectorstore.save_local("/data/faiss")
+
+
+def query_rag(question: str):
+    vectorstore = FAISS.load_local(
+        "/data/faiss",
+        embeddings,
+        allow_dangerous_deserialization=True
+    )
+
+    docs = vectorstore.similarity_search(question, k=4)
+    return docs
+
 
 # Vector store (384 = embedding dimension)
 vector_store = VectorStore(dim=384)
